@@ -1,0 +1,503 @@
+const std = @import("std");
+
+pub const V2 = @Vector(2, f32);
+
+pub const Vec2 = struct {
+    const Self = @This();
+
+    data: V2,
+
+    pub const ZERO = from(0, 0);
+
+    pub inline fn x(self: Self) f32 {
+        return self.data[0];
+    }
+    pub inline fn y(self: Self) f32 {
+        return self.data[1];
+    }
+
+    pub inline fn splat(other: f32) Vec2 {
+        return .{ .data = @splat(other) };
+    }
+
+    pub inline fn from(vx: f32, vy: f32) Self {
+        return .{ .data = .{ vx, vy } };
+    }
+
+    pub inline fn from_v2(v: V2) Self {
+        return .{ .data = v };
+    }
+
+    pub inline fn from_vec(vec: Self) Self {
+        return .{ .data = vec.data };
+    }
+
+    pub inline fn add(self: Self, other: Self) Self {
+        return from_v2(self.data + other.data);
+    }
+
+    pub inline fn sub(self: Self, other: Self) Self {
+        return from_v2(self.data - other.data);
+    }
+
+    pub inline fn mul(self: Self, s: f32) Self {
+        return from_v2(self.data * @as(V2, @splat(s)));
+    }
+
+    pub inline fn div(self: Self, s: f32) Self {
+        return from_v2(self.data / @as(V2, @splat(s)));
+    }
+
+    pub inline fn dot(self: Self, other: Self) f32 {
+        return @reduce(.Add, self.data * other.data);
+    }
+
+    pub inline fn cross(self: Self, other: Self) f32 {
+        return self.x() * other.y() - self.y() * other.x();
+    }
+
+    pub inline fn lengthSq(self: Self) f32 {
+        return self.dot(self);
+    }
+
+    pub inline fn length(self: Self) f32 {
+        return @sqrt(self.lengthSq());
+    }
+
+    pub inline fn distanceSq(self: Self, other: Self) f32 {
+        return other.sub(self).lengthSq();
+    }
+
+    pub inline fn distance(self: Self, other: Self) f32 {
+        return @sqrt(self.distanceSq(other));
+    }
+
+    pub fn normalize(self: Self) Self {
+        const lsq = self.lengthSq();
+        if (lsq < 0.000001) return ZERO;
+        const inv_len: V2 = @splat(1.0 / @sqrt(lsq));
+        return from_v2(self.data * inv_len);
+    }
+
+    pub fn rotate(self: Self, angle: f32) Self {
+        const cos = std.math.cos(angle);
+        const sin = std.math.sin(angle);
+        return from(
+            self.x() * cos - self.y() * sin,
+            self.x() * sin + self.y() * cos,
+        );
+    }
+
+    pub fn rotateAround(self: Self, pivot: Self, angle: f32) Self {
+        const shifted = self.sub(pivot);
+        const rotated = shifted.rotate(angle);
+        return rotated.add(pivot);
+    }
+
+    pub fn rotate90(self: Self) Self {
+        return from(-self.y(), self.x());
+    }
+
+    pub inline fn angleBetween(self: Self, b: Self) f32 {
+        const diff = b.data - self.data;
+        return std.math.atan2(diff[1], diff[0]);
+    }
+
+    pub inline fn clamp(self: Self, min_v: Self, max_v: Self) Self {
+        return from_v2(@max(min_v.data, @min(self.data, max_v.data)));
+    }
+
+    pub inline fn max(self: Self, other: Self) Self {
+        return from_v2(@max(self.data, other.data));
+    }
+
+    pub inline fn min(self: Self, other: Self) Self {
+        return from_v2(@min(self.data, other.data));
+    }
+
+    pub inline fn lerp(self: Self, target: Self, t: f32) Self {
+        const t_v: V2 = @splat(t);
+        return from_v2(self.data + (target.data - self.data) * t_v);
+    }
+
+    pub fn moveTowards(self: Self, target: Self, max_distance: f32) Self {
+        const diff = target.sub(self);
+        const dist_sq = diff.lengthSq();
+        if (dist_sq == 0 or (max_distance >= 0 and dist_sq <= max_distance * max_distance)) {
+            return target;
+        }
+        return self.add(diff.div(@sqrt(dist_sq)).mul(max_distance));
+    }
+
+    pub inline fn isWithinDistance(self: Self, other: Self, dist: f32) bool {
+        return self.distanceSq(other) <= (dist * dist);
+    }
+
+    pub inline fn reflect(self: Self, normal: Self) Self {
+        // formula: self - 2 * (self dot normal) * normal
+        const factor = self.dot(normal) * 2.0;
+        return self.sub(normal.mul(factor));
+    }
+};
+
+const testing = std.testing;
+
+test "Vec2: add and sub" {
+    const v1 = Vec2.from(10.0, 5.0);
+    const v2 = Vec2.from(2.0, 3.0);
+
+    // Test addition
+    const sum = v1.add(v2);
+    try std.testing.expectEqual(12.0, sum.x());
+    try std.testing.expectEqual(8.0, sum.y());
+
+    // Test subtraction
+    const diff = v1.sub(v2);
+    try std.testing.expectEqual(8.0, diff.x());
+    try std.testing.expectEqual(2.0, diff.y());
+
+    // Test negative results
+    const v3 = Vec2.from(0.0, 0.0);
+    const result = v3.sub(v2);
+    try std.testing.expectEqual(-2.0, result.x());
+    try std.testing.expectEqual(-3.0, result.y());
+}
+
+test "Vec2: dot, lengthSq, and length" {
+    const v = Vec2.from(3.0, 4.0); // The classic 3-4-5 triangle
+    const v2 = Vec2.from(2.0, 1.0);
+
+    // Test dot product: (3*2) + (4*1) = 6 + 4 = 10
+    try std.testing.expectEqual(@as(f32, 10.0), v.dot(v2));
+
+    // Test lengthSq: (3*3) + (4*4) = 9 + 16 = 25
+    try std.testing.expectEqual(@as(f32, 25.0), v.lengthSq());
+
+    // Test length: sqrt(25) = 5
+    try std.testing.expectEqual(@as(f32, 5.0), v.length());
+
+    // Test zero vector
+    const zero = Vec2.from(0.0, 0.0);
+    try std.testing.expectEqual(@as(f32, 0.0), zero.length());
+}
+
+test "Vec2: distance and distanceSq" {
+    const p1 = Vec2.from(1.0, 1.0);
+    const p2 = Vec2.from(4.0, 5.0);
+
+    // Delta X = 3, Delta Y = 4
+    // distanceSq = 3^2 + 4^2 = 9 + 16 = 25
+    try std.testing.expectEqual(@as(f32, 25.0), p1.distanceSq(p2));
+
+    // distance = sqrt(25) = 5
+    try std.testing.expectEqual(@as(f32, 5.0), p1.distance(p2));
+
+    // Test symmetry (distance from A to B should equal B to A)
+    try std.testing.expectEqual(p1.distance(p2), p2.distance(p1));
+}
+
+test "rotate - 90 degrees counter-clockwise" {
+    const v = Vec2.from(1.0, 0.0);
+
+    // 90 degrees in radians
+    const angle = std.math.pi / 2.0;
+
+    const rotated = v.rotate(angle);
+
+    // After 90 deg CCW, (1, 0) should be (0, 1)
+    const expected = Vec2.from(0.0, 1.0);
+    const epsilon = 0.0001;
+
+    try std.testing.expectApproxEqAbs(expected.x(), rotated.x(), epsilon);
+    try std.testing.expectApproxEqAbs(expected.y(), rotated.y(), epsilon);
+}
+
+test "rotate - 180 degrees" {
+    const v = Vec2.from(10.0, 5.0);
+    const angle = std.math.pi;
+
+    const rotated = v.rotate(angle);
+
+    // After 180 deg, vector should be inverted
+    const expected = Vec2.from(-10.0, -5.0);
+    const epsilon = 0.0001;
+
+    try std.testing.expectApproxEqAbs(expected.x(), rotated.x(), epsilon);
+    try std.testing.expectApproxEqAbs(expected.y(), rotated.y(), epsilon);
+}
+
+test "rotate - full circle (360)" {
+    const v = Vec2.from(1.23, 4.56);
+    const angle = std.math.pi * 2.0;
+
+    const rotated = v.rotate(angle);
+
+    // Should be back where it started
+    try std.testing.expectApproxEqAbs(v.x(), rotated.x(), 0.0001);
+    try std.testing.expectApproxEqAbs(v.y(), rotated.y(), 0.0001);
+}
+
+test "rotate 90" {
+    const v = Vec2.from(0, 1);
+    const rotated = v.rotate90();
+
+    // Should be back where it started
+    try std.testing.expectApproxEqAbs(-1, rotated.x(), 0.0001);
+    try std.testing.expectApproxEqAbs(0, rotated.y(), 0.0001);
+    const rotated_again = rotated.rotate90();
+    try std.testing.expectApproxEqAbs(0, rotated_again.x(), 0.0001);
+    try std.testing.expectApproxEqAbs(-1, rotated_again.y(), 0.0001);
+}
+
+test "rotate around" {
+    const v = Vec2.from(0, 1);
+    const angle = std.math.pi;
+    const rotated = v.rotateAround(Vec2.from(1, 1), angle);
+
+    // Should be back where it started
+    try std.testing.expectApproxEqAbs(2, rotated.x(), 0.0001);
+    try std.testing.expectApproxEqAbs(1, rotated.y(), 0.0001);
+}
+
+test "normalize - unit length and zero vector" {
+    // 1. Test standard normalization: (3, 4) has length 5, so normalized is (3/5, 4/5)
+    const v1 = Vec2.from(3.0, 4.0);
+    const normalized1 = v1.normalize();
+
+    const expected_x: f32 = 0.6;
+    const expected_y: f32 = 0.8;
+    const epsilon = 0.0001;
+
+    try testing.expectApproxEqAbs(expected_x, normalized1.x(), epsilon);
+    try testing.expectApproxEqAbs(expected_y, normalized1.y(), epsilon);
+
+    // Verify the resulting length is actually 1.0
+    try testing.expectApproxEqAbs(@as(f32, 1.0), @sqrt(normalized1.lengthSq()), epsilon);
+
+    // 2. Test zero vector: Should return itself (0, 0) to avoid NaN
+    const v_zero = Vec2.ZERO;
+    const normalized_zero = v_zero.normalize();
+
+    try testing.expectEqual(@as(f32, 0.0), normalized_zero.x());
+    try testing.expectEqual(@as(f32, 0.0), normalized_zero.y());
+}
+
+test "Vec2: angleBetween (Y-Down)" {
+    const origin = Vec2.from(0.0, 0.0);
+    const tolerance = 0.000001;
+
+    // Right: 0 radians
+    const right = Vec2.from(1.0, 0.0);
+    try std.testing.expectApproxEqAbs(
+        @as(f32, 0.0),
+        origin.angleBetween(right),
+        tolerance,
+    );
+
+    // Down: π/2 radians (90 degrees) - because Y increases downwards
+    const down = Vec2.from(0.0, 1.0);
+    try std.testing.expectApproxEqAbs(
+        @as(f32, std.math.pi / 2.0),
+        origin.angleBetween(down),
+        tolerance,
+    );
+
+    // Up: -π/2 radians (-90 degrees) - because Y decreases upwards
+    const up = Vec2.from(0.0, -1.0);
+    try std.testing.expectApproxEqAbs(
+        @as(f32, -std.math.pi / 2.0),
+        origin.angleBetween(up),
+        tolerance,
+    );
+
+    // Left: π radians (180 degrees)
+    const left = Vec2.from(-1.0, 0.0);
+    try std.testing.expectApproxEqAbs(
+        @as(f32, std.math.pi),
+        origin.angleBetween(left),
+        tolerance,
+    );
+}
+
+test "Vec2: clamp, max, and min" {
+    const v = Vec2.from(10.0, -5.0);
+    const low = Vec2.from(0.0, 0.0);
+    const high = Vec2.from(5.0, 5.0);
+
+    // Test clamp:
+    // X: 10.0 clamped between 0 and 5 -> 5.0
+    // Y: -5.0 clamped between 0 and 5 -> 0.0
+    const clamped = v.clamp(low, high);
+    try std.testing.expectEqual(@as(f32, 5.0), clamped.x());
+    try std.testing.expectEqual(@as(f32, 0.0), clamped.y());
+
+    // Test max: Takes the highest X and highest Y from both
+    const a = Vec2.from(10.0, 2.0);
+    const b = Vec2.from(3.0, 8.0);
+    const max_v = a.max(b);
+    try std.testing.expectEqual(@as(f32, 10.0), max_v.x());
+    try std.testing.expectEqual(@as(f32, 8.0), max_v.y());
+
+    // Test min: Takes the lowest X and lowest Y from both
+    const min_v = a.min(b);
+    try std.testing.expectEqual(@as(f32, 3.0), min_v.x());
+    try std.testing.expectEqual(@as(f32, 2.0), min_v.y());
+}
+
+test "Vec2: lerp" {
+    const start = Vec2.from(0.0, 10.0);
+    const end = Vec2.from(10.0, 20.0);
+    const tolerance = 0.000001;
+
+    // Test t = 0.0 (Should be start)
+    const at_zero = start.lerp(end, 0.0);
+    try std.testing.expectEqual(start.x(), at_zero.x());
+    try std.testing.expectEqual(start.y(), at_zero.y());
+
+    // Test t = 0.5 (Should be midpoint: 5.0, 15.0)
+    const mid = start.lerp(end, 0.5);
+    try std.testing.expectApproxEqAbs(@as(f32, 5.0), mid.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, 15.0), mid.y(), tolerance);
+
+    // Test t = 1.0 (Should be end)
+    const at_one = start.lerp(end, 1.0);
+    try std.testing.expectEqual(end.x(), at_one.x());
+    try std.testing.expectEqual(end.y(), at_one.y());
+
+    // Test t = 0.25
+    const quarter = start.lerp(end, 0.25);
+    try std.testing.expectApproxEqAbs(@as(f32, 2.5), quarter.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, 12.5), quarter.y(), tolerance);
+}
+
+test "Vec2: Rotation and Angles (Y-up)" {
+    const right = Vec2.from(1.0, 0.0);
+    const tolerance = 0.000001;
+
+    // rotate90: (1, 0) -> (0, 1) [Up]
+    const up = right.rotate90();
+    try std.testing.expectEqual(@as(f32, 0.0), up.x());
+    try std.testing.expectEqual(@as(f32, 1.0), up.y());
+
+    // rotate CCW: (1, 0) rotated by 90 deg (π/2) -> (0, 1) [Up]
+    const rotated_up = right.rotate(std.math.pi / 2.0);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.0), rotated_up.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, 1.0), rotated_up.y(), tolerance);
+
+    // angleBetween: Origin to (0, 1) should be 90 deg (π/2)
+    const origin = Vec2.from(0.0, 0.0);
+    try std.testing.expectApproxEqAbs(@as(f32, std.math.pi / 2.0), origin.angleBetween(up), tolerance);
+
+    // rotateAround: Rotate (2, 0) around (1, 0) by 180 deg (π) -> (0, 0)
+    const p = Vec2.from(2.0, 0.0);
+    const pivot = Vec2.from(1.0, 0.0);
+    const flipped = p.rotateAround(pivot, std.math.pi);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.0), flipped.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.0), flipped.y(), tolerance);
+}
+
+test "Vec2: mul and div" {
+    const v = Vec2.from(4.0, -2.0);
+    const tolerance = 0.000001;
+
+    // Test multiplication: (4 * 2.5, -2 * 2.5) = (10, -5)
+    const scaled = v.mul(2.5);
+    try std.testing.expectEqual(@as(f32, 10.0), scaled.x());
+    try std.testing.expectEqual(@as(f32, -5.0), scaled.y());
+
+    // Test division: (4 / 2, -2 / 2) = (2, -1)
+    const halved = v.div(2.0);
+    try std.testing.expectEqual(@as(f32, 2.0), halved.x());
+    try std.testing.expectEqual(@as(f32, -1.0), halved.y());
+
+    // Test precision with fractional division
+    const thirded = v.div(3.0);
+    try std.testing.expectApproxEqAbs(@as(f32, 1.333333), thirded.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, -0.666666), thirded.y(), tolerance);
+}
+
+test "Vec2: moveTowards" {
+    const start = Vec2.from(0.0, 0.0);
+    const target = Vec2.from(10.0, 0.0);
+    const tolerance = 0.000001;
+
+    // 1. Partial move: Move 3 units toward (10, 0)
+    const partial = start.moveTowards(target, 3.0);
+    try std.testing.expectApproxEqAbs(@as(f32, 3.0), partial.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.0), partial.y(), tolerance);
+
+    // 2. Reach target: Move 15 units toward (10, 0) - should cap at 10
+    const reached = start.moveTowards(target, 15.0);
+    try std.testing.expectEqual(@as(f32, 10.0), reached.x());
+    try std.testing.expectEqual(@as(f32, 0.0), reached.y());
+
+    // 3. Diagonal move: Move 5 units toward (3, 4)
+    // The distance is 5, so moving 5 should land exactly on (3, 4)
+    const diag_target = Vec2.from(3.0, 4.0);
+    const diag_move = start.moveTowards(diag_target, 5.0);
+    try std.testing.expectApproxEqAbs(@as(f32, 3.0), diag_move.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, 4.0), diag_move.y(), tolerance);
+
+    // 4. Already there
+    const stayed = target.moveTowards(target, 5.0);
+    try std.testing.expectEqual(target.x(), stayed.x());
+    try std.testing.expectEqual(target.y(), stayed.y());
+}
+
+test "Vec2: isWithinDistance" {
+    const p1 = Vec2.from(0.0, 0.0);
+    const p2 = Vec2.from(3.0, 4.0); // Distance is exactly 5.0
+
+    // 1. Inside the radius (5.1 > 5.0)
+    try std.testing.expect(p1.isWithinDistance(p2, 5.1));
+
+    // 2. Exactly on the boundary (5.0 == 5.0)
+    try std.testing.expect(p1.isWithinDistance(p2, 5.0));
+
+    // 3. Outside the radius (4.9 < 5.0)
+    try std.testing.expect(!p1.isWithinDistance(p2, 4.9));
+
+    // 4. Test with a different origin
+    const p3 = Vec2.from(10.0, 10.0);
+    const p4 = Vec2.from(11.0, 10.0); // Distance is 1.0
+    try std.testing.expect(p3.isWithinDistance(p4, 1.5));
+    try std.testing.expect(!p3.isWithinDistance(p4, 0.5));
+}
+
+test "Vec2: cross product" {
+    const right = Vec2.from(1.0, 0.0);
+    const up = Vec2.from(0.0, 1.0);
+
+    // Right cross Up should be 1.0 (Positive in Y-up)
+    try std.testing.expectEqual(@as(f32, 1.0), right.cross(up));
+
+    // Up cross Right should be -1.0
+    try std.testing.expectEqual(@as(f32, -1.0), up.cross(right));
+
+    // Parallel vectors should be 0.0
+    try std.testing.expectEqual(@as(f32, 0.0), right.cross(right));
+}
+
+test "Vec2: reflect" {
+    const tolerance = 0.000001;
+
+    // 1. Bouncing off a floor (Normal is UP: 0, 1)
+    // Incoming: (1, -1) [Moving Right and Down]
+    // Expected: (1, 1)  [Moving Right and Up]
+    const incoming_floor = Vec2.from(1.0, -1.0);
+    const floor_normal = Vec2.from(0.0, 1.0);
+    const reflected_floor = incoming_floor.reflect(floor_normal);
+
+    try std.testing.expectApproxEqAbs(@as(f32, 1.0), reflected_floor.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, 1.0), reflected_floor.y(), tolerance);
+
+    // 2. Bouncing off a wall (Normal is LEFT: -1, 0)
+    // Incoming: (1, 0) [Moving straight Right]
+    // Expected: (-1, 0) [Moving straight Left]
+    const incoming_wall = Vec2.from(1.0, 0.0);
+    const wall_normal = Vec2.from(-1.0, 0.0);
+    const reflected_wall = incoming_wall.reflect(wall_normal);
+
+    try std.testing.expectApproxEqAbs(@as(f32, -1.0), reflected_wall.x(), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.0), reflected_wall.y(), tolerance);
+}
