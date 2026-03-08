@@ -8,6 +8,7 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
 
         pub const ZERO = splat(0);
 
+        // Accessors
         pub inline fn x(self: Self) T {
             return self.data[0];
         }
@@ -22,6 +23,7 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return self.data[2];
         }
 
+        // Constructors
         pub inline fn splat(other: T) Self {
             return .{ .data = @splat(other) };
         }
@@ -34,6 +36,7 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return .{ .data = vec.data };
         }
 
+        // Base Methods
         pub inline fn add(self: Self, other: Self) Self {
             return from_v(self.data + other.data);
         }
@@ -81,11 +84,6 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return from_v(self.data * inv_len);
         }
 
-        pub inline fn angleBetween(self: Self, b: Self) T {
-            const diff = b.data - self.data;
-            return std.math.atan2(diff[1], diff[0]);
-        }
-
         pub inline fn clamp(self: Self, min_v: Self, max_v: Self) Self {
             return from_v(@max(min_v.data, @min(self.data, max_v.data)));
         }
@@ -123,7 +121,7 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
         }
 
         // 2d  math
-        pub fn rotate(self: Self, angle: T) Self {
+        pub fn rotate_2d(self: Self, angle: T) Self {
             comptime if (size != 2) @compileError("Only for 2d");
             const cos = std.math.cos(angle);
             const sin = std.math.sin(angle);
@@ -133,16 +131,22 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             } };
         }
 
-        pub fn rotateAround(self: Self, pivot: Self, angle: T) Self {
+        pub fn rotateAround_2d(self: Self, pivot: Self, angle: T) Self {
             comptime if (size != 2) @compileError("Only for 2d");
             const shifted = self.sub(pivot);
-            const rotated = shifted.rotate(angle);
+            const rotated = shifted.rotate_2d(angle);
             return rotated.add(pivot);
         }
 
-        pub fn rotate90(self: Self) Self {
+        pub fn rotate90_2d(self: Self) Self {
             comptime if (size != 2) @compileError("Only for 2d");
             return .{ .data = .{ -self.data[1], self.data[0] } };
+        }
+
+        pub inline fn angleBetween2d(self: Self, b: Self) T {
+            comptime if (size != 2) @compileError("Only for 2d");
+            const diff = b.data - self.data;
+            return std.math.atan2(diff[1], diff[0]);
         }
     };
 }
@@ -217,7 +221,7 @@ test "rotate - 90 degrees counter-clockwise" {
     // 90 degrees in radians
     const angle = std.math.pi / 2.0;
 
-    const rotated = v.rotate(angle);
+    const rotated = v.rotate_2d(angle);
 
     // After 90 deg CCW, (1, 0) should be (0, 1)
     const expected = Vec2.from_v(.{ 0.0, 1.0 });
@@ -231,7 +235,7 @@ test "rotate - 180 degrees" {
     const v = Vec2.from_v(.{ 10.0, 5.0 });
     const angle = std.math.pi;
 
-    const rotated = v.rotate(angle);
+    const rotated = v.rotate_2d(angle);
 
     // After 180 deg, vector should be inverted
     const expected = Vec2.from_v(.{ -10.0, -5.0 });
@@ -245,7 +249,7 @@ test "rotate - full circle (360)" {
     const v = Vec2.from_v(.{ 1.23, 4.56 });
     const angle = std.math.pi * 2.0;
 
-    const rotated = v.rotate(angle);
+    const rotated = v.rotate_2d(angle);
 
     // Should be back where it started
     try std.testing.expectApproxEqAbs(v.x(), rotated.x(), 0.0001);
@@ -254,12 +258,12 @@ test "rotate - full circle (360)" {
 
 test "rotate 90" {
     const v = Vec2.from_v(.{ 0, 1 });
-    const rotated = v.rotate90();
+    const rotated = v.rotate90_2d();
 
     // Should be back where it started
     try std.testing.expectApproxEqAbs(-1, rotated.x(), 0.0001);
     try std.testing.expectApproxEqAbs(0, rotated.y(), 0.0001);
-    const rotated_again = rotated.rotate90();
+    const rotated_again = rotated.rotate90_2d();
     try std.testing.expectApproxEqAbs(0, rotated_again.x(), 0.0001);
     try std.testing.expectApproxEqAbs(-1, rotated_again.y(), 0.0001);
 }
@@ -267,7 +271,7 @@ test "rotate 90" {
 test "rotate around" {
     const v = Vec2.from_v(.{ 0, 1 });
     const angle = std.math.pi;
-    const rotated = v.rotateAround(Vec2.splat(1), angle);
+    const rotated = v.rotateAround_2d(Vec2.splat(1), angle);
 
     // Should be back where it started
     try std.testing.expectApproxEqAbs(2, rotated.x(), 0.0001);
@@ -305,7 +309,7 @@ test "Vec2: angleBetween (Y-Down)" {
     const right = Vec2.from_v(.{ 1.0, 0.0 });
     try std.testing.expectApproxEqAbs(
         @as(f32, 0.0),
-        origin.angleBetween(right),
+        origin.angleBetween2d(right),
         tolerance,
     );
 
@@ -313,7 +317,7 @@ test "Vec2: angleBetween (Y-Down)" {
     const down = Vec2.from_v(.{ 0.0, 1.0 });
     try std.testing.expectApproxEqAbs(
         @as(f32, std.math.pi / 2.0),
-        origin.angleBetween(down),
+        origin.angleBetween2d(down),
         tolerance,
     );
 
@@ -321,7 +325,7 @@ test "Vec2: angleBetween (Y-Down)" {
     const up = Vec2.from_v(.{ 0.0, -1.0 });
     try std.testing.expectApproxEqAbs(
         @as(f32, -std.math.pi / 2.0),
-        origin.angleBetween(up),
+        origin.angleBetween2d(up),
         tolerance,
     );
 
@@ -329,7 +333,7 @@ test "Vec2: angleBetween (Y-Down)" {
     const left = Vec2.from_v(.{ -1.0, 0.0 });
     try std.testing.expectApproxEqAbs(
         @as(f32, std.math.pi),
-        origin.angleBetween(left),
+        origin.angleBetween2d(left),
         tolerance,
     );
 }
@@ -390,23 +394,23 @@ test "Vec2: Rotation and Angles (Y-up)" {
     const tolerance = 0.000001;
 
     // rotate90: (1, 0) -> (0, 1) [Up]
-    const up = right.rotate90();
+    const up = right.rotate90_2d();
     try std.testing.expectEqual(@as(f32, 0.0), up.x());
     try std.testing.expectEqual(@as(f32, 1.0), up.y());
 
     // rotate CCW: (1, 0) rotated by 90 deg (π/2) -> (0, 1) [Up]
-    const rotated_up = right.rotate(std.math.pi / 2.0);
+    const rotated_up = right.rotate_2d(std.math.pi / 2.0);
     try std.testing.expectApproxEqAbs(@as(f32, 0.0), rotated_up.x(), tolerance);
     try std.testing.expectApproxEqAbs(@as(f32, 1.0), rotated_up.y(), tolerance);
 
     // angleBetween: Origin to (0, 1) should be 90 deg (π/2)
     const origin = Vec2.from_v(.{ 0.0, 0.0 });
-    try std.testing.expectApproxEqAbs(@as(f32, std.math.pi / 2.0), origin.angleBetween(up), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, std.math.pi / 2.0), origin.angleBetween2d(up), tolerance);
 
     // rotateAround: Rotate (2, 0) around (1, 0) by 180 deg (π) -> (0, 0)
     const p = Vec2.from_v(.{ 2.0, 0.0 });
     const pivot = Vec2.from_v(.{ 1.0, 0.0 });
-    const flipped = p.rotateAround(pivot, std.math.pi);
+    const flipped = p.rotateAround_2d(pivot, std.math.pi);
     try std.testing.expectApproxEqAbs(@as(f32, 0.0), flipped.x(), tolerance);
     try std.testing.expectApproxEqAbs(@as(f32, 0.0), flipped.y(), tolerance);
 }
