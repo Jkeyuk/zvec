@@ -81,28 +81,6 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return from_v(self.data * inv_len);
         }
 
-        pub fn rotate(self: Self, angle: T) Self {
-            comptime if (size != 2) @compileError("Only for 2d");
-            const cos = std.math.cos(angle);
-            const sin = std.math.sin(angle);
-            return .{ .data = .{
-                self.data[0] * cos - self.data[1] * sin,
-                self.data[0] * sin + self.data[1] * cos,
-            } };
-        }
-
-        pub fn rotateAround(self: Self, pivot: Self, angle: T) Self {
-            comptime if (size != 2) @compileError("Only for 2d");
-            const shifted = self.sub(pivot);
-            const rotated = shifted.rotate(angle);
-            return rotated.add(pivot);
-        }
-
-        pub fn rotate90(self: Self) Self {
-            comptime if (size != 2) @compileError("Only for 2d");
-            return .{ .data = .{ -self.data[1], self.data[0] } };
-        }
-
         pub inline fn angleBetween(self: Self, b: Self) T {
             const diff = b.data - self.data;
             return std.math.atan2(diff[1], diff[0]);
@@ -142,6 +120,29 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             // formula: self - 2 * (self dot normal) * normal
             const factor = self.dot(normal) * 2.0;
             return self.sub(normal.mul(factor));
+        }
+
+        // 2d  math
+        pub fn rotate(self: Self, angle: T) Self {
+            comptime if (size != 2) @compileError("Only for 2d");
+            const cos = std.math.cos(angle);
+            const sin = std.math.sin(angle);
+            return .{ .data = .{
+                self.data[0] * cos - self.data[1] * sin,
+                self.data[0] * sin + self.data[1] * cos,
+            } };
+        }
+
+        pub fn rotateAround(self: Self, pivot: Self, angle: T) Self {
+            comptime if (size != 2) @compileError("Only for 2d");
+            const shifted = self.sub(pivot);
+            const rotated = shifted.rotate(angle);
+            return rotated.add(pivot);
+        }
+
+        pub fn rotate90(self: Self) Self {
+            comptime if (size != 2) @compileError("Only for 2d");
+            return .{ .data = .{ -self.data[1], self.data[0] } };
         }
     };
 }
