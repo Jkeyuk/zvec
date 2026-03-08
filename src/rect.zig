@@ -39,19 +39,19 @@ pub const Rect = struct {
     }
 
     pub inline fn midTop(self: Self) Vec2 {
-        return Vec2.from(self.center().x(), self.start.y());
+        return Vec2.from(.{ self.center().x(), self.start.y() });
     }
 
     pub inline fn midBottom(self: Self) Vec2 {
-        return Vec2.from(self.center().x(), self.end().y());
+        return Vec2.from(.{ self.center().x(), self.end().y() });
     }
 
     pub inline fn midLeft(self: Self) Vec2 {
-        return Vec2.from(self.start.x(), self.center().y());
+        return Vec2.from(.{ self.start.x(), self.center().y() });
     }
 
     pub inline fn midRight(self: Self) Vec2 {
-        return Vec2.from(self.end().x(), self.center().y());
+        return Vec2.from(.{ self.end().x(), self.center().y() });
     }
 
     pub inline fn fromCenter(pos: Vec2, size: Vec2) Self {
@@ -80,6 +80,12 @@ pub const Rect = struct {
     pub inline fn merge(self: Self, r2: Self) Self {
         const new_start = self.start.min(r2.start);
         const new_end = self.end().max(r2.end());
+        return Self.init(new_start, new_end.sub(new_start));
+    }
+
+    pub inline fn includePoint(self: Self, point: Vec2) Self {
+        const new_start = self.start.min(point);
+        const new_end = self.end().max(point);
         return Self.init(new_start, new_end.sub(new_start));
     }
 
@@ -175,7 +181,7 @@ pub const Rect = struct {
         const e = self.end().data;
         const real_start = @min(s, e);
         const real_end = @max(s, e);
-        return Self.init(Vec2.from_v2(real_start), Vec2.from_v2(real_end - real_start));
+        return Self.init(Vec2.from(real_start), Vec2.from(real_end - real_start));
     }
 
     pub inline fn closestPoint(self: Self, p: Vec2) Vec2 {
@@ -532,4 +538,21 @@ test "Rect: shrink & shrinkVec2" {
     try std.testing.expectEqual(@as(f32, 0.0), crushed.size.y());
     // Start still moves even if size is 0
     try std.testing.expectEqual(@as(f32, 70.0), crushed.start.x());
+}
+
+test "Rect mid-points" {
+    // Center is (5, 5)
+    const rect = Rect.init(Vec2.ZERO, Vec2.from(.{ 10.0, 10.0 }));
+
+    // Mid Top: (5, 0)
+    try std.testing.expectEqual(@Vector(2, f32){ 5.0, 0.0 }, rect.midTop().data);
+
+    // Mid Bottom: (5, 10)
+    try std.testing.expectEqual(@Vector(2, f32){ 5.0, 10.0 }, rect.midBottom().data);
+
+    // Mid Left: (0, 5)
+    try std.testing.expectEqual(@Vector(2, f32){ 0.0, 5.0 }, rect.midLeft().data);
+
+    // Mid Right: (10, 5)
+    try std.testing.expectEqual(@Vector(2, f32){ 10.0, 5.0 }, rect.midRight().data);
 }
