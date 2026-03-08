@@ -26,6 +26,11 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return self.data[2];
         }
 
+        pub inline fn w(self: Self) T {
+            comptime if (size < 4) @compileError("Vector too small for .z()");
+            return self.data[3];
+        }
+
         pub fn swizzle(self: Self, comptime mask: []const u8) Vec(mask.len, T) {
             const indices: [mask.len]i32 = comptime blk: {
                 var res: [mask.len]i32 = undefined;
