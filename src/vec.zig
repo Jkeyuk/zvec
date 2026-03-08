@@ -71,6 +71,18 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return from(self.data / @as(V, @splat(s)));
         }
 
+        pub inline fn abs(self: Self) Self {
+            return from(@abs(self.data));
+        }
+
+        pub inline fn floor(self: Self) Self {
+            return from(@floor(self.data));
+        }
+
+        pub inline fn round(self: Self) Self {
+            return from(@round(self.data));
+        }
+
         pub fn approxEq(self: Self, other: Self, epsilon: T) bool {
             return self.distanceSq(other) < (epsilon * epsilon);
         }
