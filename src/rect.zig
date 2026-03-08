@@ -596,3 +596,55 @@ test "Rect.includePoint" {
 
     try std.testing.expect(no_change.is_eq(expanded_tl));
 }
+
+test "Rect.abs" {
+    // 1. Test a rect with negative size (start at 10, size -20)
+    // start = 10, 10 | end = -10, -10
+    const neg_rect = Rect.init(
+        Vec2.from(.{ 10.0, 10.0 }),
+        Vec2.from(.{ -20.0, -20.0 }),
+    );
+
+    const abs_rect = neg_rect.abs();
+
+    // After abs: real_start should be -10, real_end 10, size 20
+    try std.testing.expectEqual(@as(f32, -10.0), abs_rect.start.x());
+    try std.testing.expectEqual(@as(f32, -10.0), abs_rect.start.y());
+    try std.testing.expectEqual(@as(f32, 20.0), abs_rect.size.x());
+    try std.testing.expectEqual(@as(f32, 20.0), abs_rect.size.y());
+
+    // 2. Test that a already positive rect remains unchanged
+    const pos_rect = Rect.init(Vec2.from(.{ 0.0, 0.0 }), Vec2.from(.{ 5.0, 5.0 }));
+    try std.testing.expect(pos_rect.abs().is_eq(pos_rect));
+}
+
+test "Rect.closestPoint" {
+    const rect = Rect.init(
+        Vec2.from(.{ 0.0, 0.0 }),
+        Vec2.from(.{ 10.0, 10.0 }),
+    );
+
+    // 1. Point outside (Top-Left)
+    const p_tl = Vec2.from(.{ -5.0, -5.0 });
+    const close_tl = rect.closestPoint(p_tl);
+    try std.testing.expectEqual(@as(f32, 0.0), close_tl.x());
+    try std.testing.expectEqual(@as(f32, 0.0), close_tl.y());
+
+    // 2. Point outside (Bottom-Right)
+    const p_br = Vec2.from(.{ 15.0, 20.0 });
+    const close_br = rect.closestPoint(p_br);
+    try std.testing.expectEqual(@as(f32, 10.0), close_br.x());
+    try std.testing.expectEqual(@as(f32, 10.0), close_br.y());
+
+    // 3. Point already inside (should return the point itself)
+    const p_in = Vec2.from(.{ 5.0, 5.0 });
+    const close_in = rect.closestPoint(p_in);
+    try std.testing.expectEqual(@as(f32, 5.0), close_in.x());
+    try std.testing.expectEqual(@as(f32, 5.0), close_in.y());
+
+    // 4. Point on an edge
+    const p_edge = Vec2.from(.{ 10.0, 5.0 });
+    const close_edge = rect.closestPoint(p_edge);
+    try std.testing.expectEqual(@as(f32, 10.0), close_edge.x());
+    try std.testing.expectEqual(@as(f32, 5.0), close_edge.y());
+}
