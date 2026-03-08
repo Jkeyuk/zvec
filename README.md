@@ -65,7 +65,9 @@ exe.root_module.addImport("zvec", zvec.module("zvec"));
 
 ```zig
 const zvec = @import("zvec");
-const Vec2 = zvec.Vec2;
+const Vec = zvec.Vec;
+
+const Vec2 = Vec(2, f32);
 
 const a = Vec2.from(10.0, 20.0);
 const b = Vec2.from(5.0, 5.0);
