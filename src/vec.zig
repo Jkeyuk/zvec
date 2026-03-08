@@ -158,10 +158,29 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return .{ .data = .{ -self.data[1], self.data[0] } };
         }
 
-        pub inline fn angleBetween2d(self: Self, b: Self) T {
+        pub inline fn angleBetween_2d(self: Self, b: Self) T {
             comptime if (size != 2) @compileError("Only for 2d");
             const diff = b.data - self.data;
             return std.math.atan2(diff[1], diff[0]);
+        }
+
+        // 3d Math
+        pub fn rotate_3d(self: Self, axis: Self, angle: T) Self {
+            comptime if (size != 3) @compileError("rotate_3d is only for 3D vectors");
+
+            // Normalize axis to ensure rotation doesn't scale the vector
+            const k = axis.normalize();
+            const cos_theta = @cos(angle);
+            const sin_theta = @sin(angle);
+
+            // Rodrigues' formula:
+            // v_rot = v*cos(θ) + (k x v)*sin(θ) + k*(k · v)*(1 - cos(θ))
+
+            const term1 = self.mul(cos_theta);
+            const term2 = k.cross(self).mul(sin_theta);
+            const term3 = k.mul(k.dot(self) * (1.0 - cos_theta));
+
+            return term1.add(term2).add(term3);
         }
     };
 }
@@ -324,7 +343,7 @@ test "Vec2: angleBetween (Y-Down)" {
     const right = Vec2.from(.{ 1.0, 0.0 });
     try std.testing.expectApproxEqAbs(
         @as(f32, 0.0),
-        origin.angleBetween2d(right),
+        origin.angleBetween_2d(right),
         tolerance,
     );
 
@@ -332,7 +351,7 @@ test "Vec2: angleBetween (Y-Down)" {
     const down = Vec2.from(.{ 0.0, 1.0 });
     try std.testing.expectApproxEqAbs(
         @as(f32, std.math.pi / 2.0),
-        origin.angleBetween2d(down),
+        origin.angleBetween_2d(down),
         tolerance,
     );
 
@@ -340,7 +359,7 @@ test "Vec2: angleBetween (Y-Down)" {
     const up = Vec2.from(.{ 0.0, -1.0 });
     try std.testing.expectApproxEqAbs(
         @as(f32, -std.math.pi / 2.0),
-        origin.angleBetween2d(up),
+        origin.angleBetween_2d(up),
         tolerance,
     );
 
@@ -348,7 +367,7 @@ test "Vec2: angleBetween (Y-Down)" {
     const left = Vec2.from(.{ -1.0, 0.0 });
     try std.testing.expectApproxEqAbs(
         @as(f32, std.math.pi),
-        origin.angleBetween2d(left),
+        origin.angleBetween_2d(left),
         tolerance,
     );
 }
@@ -420,7 +439,7 @@ test "Vec2: Rotation and Angles (Y-up)" {
 
     // angleBetween: Origin to (0, 1) should be 90 deg (π/2)
     const origin = Vec2.from(.{ 0.0, 0.0 });
-    try std.testing.expectApproxEqAbs(@as(f32, std.math.pi / 2.0), origin.angleBetween2d(up), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f32, std.math.pi / 2.0), origin.angleBetween_2d(up), tolerance);
 
     // rotateAround: Rotate (2, 0) around (1, 0) by 180 deg (π) -> (0, 0)
     const p = Vec2.from(.{ 2.0, 0.0 });
@@ -553,4 +572,18 @@ test "Vec2: reflect" {
 
     try std.testing.expectApproxEqAbs(@as(f32, -1.0), reflected_wall.x(), tolerance);
     try std.testing.expectApproxEqAbs(@as(f32, 0.0), reflected_wall.y(), tolerance);
+}
+
+test "Vec rotation 3D" {
+    const pi = std.math.pi;
+
+    const v = Vec3.from(.{ 1.0, 0.0, 0.0 }); // Pointing Right (X)
+    const axis = Vec3.from(.{ 0.0, 0.0, 1.0 }); // Rotating around Z
+
+    const rotated = v.rotate_3d(axis, pi / 2.0);
+
+    // Should be approx { 0.0, 1.0, 0.0 } (Pointing Up / Y)
+    try std.testing.expectApproxEqAbs(0.0, rotated.x(), 0.0001);
+    try std.testing.expectApproxEqAbs(1.0, rotated.y(), 0.0001);
+    try std.testing.expectApproxEqAbs(0.0, rotated.z(), 0.0001);
 }
