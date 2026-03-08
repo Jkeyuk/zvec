@@ -119,6 +119,16 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return from(self.data * inv_len);
         }
 
+        pub inline fn project(self: Self, onto: Self) Self {
+            const d = onto.dot(onto);
+            if (d < 0.000001) return ZERO;
+            return onto.mul(self.dot(onto) / d);
+        }
+
+        pub inline fn reject(self: Self, onto: Self) Self {
+            return self.sub(self.project(onto));
+        }
+
         pub inline fn clamp(self: Self, min_v: Self, max_v: Self) Self {
             return from(@max(min_v.data, @min(self.data, max_v.data)));
         }
