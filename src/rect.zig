@@ -158,8 +158,8 @@ pub const Rect = struct {
 
     pub inline fn pad(self: Self, top: f32, right: f32, bottom: f32, left: f32) Self {
         return Self.init(
-            self.start.add(Vec2.from(left, top)),
-            self.size.sub(Vec2.from(left + right, top + bottom)),
+            self.start.sub(Vec2.from(.{ left, top })),
+            self.size.add(Vec2.from(.{ left + right, top + bottom })),
         );
     }
 
@@ -647,4 +647,35 @@ test "Rect.closestPoint" {
     const close_edge = rect.closestPoint(p_edge);
     try std.testing.expectEqual(@as(f32, 10.0), close_edge.x());
     try std.testing.expectEqual(@as(f32, 5.0), close_edge.y());
+}
+
+test "Rect.pad (Outward Expansion)" {
+    // 1. Create a 100x100 rect starting at (50, 50)
+    // End is (150, 150)
+    const rect = Rect.init(
+        Vec2.from(.{ 50.0, 50.0 }),
+        Vec2.from(.{ 100.0, 100.0 }),
+    );
+
+    // 2. Apply outward padding (margins)
+    // top: 10, right: 20, bottom: 30, left: 40
+    const padded = rect.pad(10.0, 20.0, 30.0, 40.0);
+
+    // New start moves "left" and "up":
+    // x: 50 - 40 (left) = 10.0
+    // y: 50 - 10 (top)  = 40.0
+    try std.testing.expectEqual(@as(f32, 10.0), padded.start.x());
+    try std.testing.expectEqual(@as(f32, 40.0), padded.start.y());
+
+    // New size grows:
+    // width:  100 + (40 + 20) = 160.0
+    // height: 100 + (10 + 30) = 140.0
+    try std.testing.expectEqual(@as(f32, 160.0), padded.size.x());
+    try std.testing.expectEqual(@as(f32, 140.0), padded.size.y());
+
+    // 3. Verify the new 'end' point
+    // x: 150 + 20 (right) = 170.0
+    // y: 150 + 30 (bottom) = 180.0
+    try std.testing.expectEqual(@as(f32, 170.0), padded.end().x());
+    try std.testing.expectEqual(@as(f32, 180.0), padded.end().y());
 }
