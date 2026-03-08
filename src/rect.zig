@@ -14,6 +14,19 @@ pub const Rect = struct {
         return .{ .start = start, .size = size };
     }
 
+    pub inline fn fromCenter(pos: Vec2, size: Vec2) Self {
+        return .{
+            .start = pos.sub(size.mul(0.5)),
+            .size = size,
+        };
+    }
+
+    pub inline fn at(self: Self, x: f32, y: f32) Self {
+        var new = self;
+        new.start = Vec2.from(.{ x, y });
+        return new;
+    }
+
     pub inline fn splat(value: f32) Self {
         return .{ .size = Vec2.splat(value) };
     }
@@ -52,19 +65,6 @@ pub const Rect = struct {
 
     pub inline fn midRight(self: Self) Vec2 {
         return Vec2.from(.{ self.end().x(), self.center().y() });
-    }
-
-    pub inline fn fromCenter(pos: Vec2, size: Vec2) Self {
-        return .{
-            .start = pos.sub(size.mul(0.5)),
-            .size = size,
-        };
-    }
-
-    pub inline fn at(self: Self, x: f32, y: f32) Self {
-        var new = self;
-        new.start = Vec2.from(.{ x, y });
-        return new;
     }
 
     /// Return [start x, y , size x, y]
@@ -555,4 +555,44 @@ test "Rect mid-points" {
 
     // Mid Right: (10, 5)
     try std.testing.expectEqual(@Vector(2, f32){ 10.0, 5.0 }, rect.midRight().data);
+}
+
+test "Rect.includePoint" {
+    // 1. Initialize a 10x10 rect starting at (10, 10). End point is (20, 20).
+    const rect = Rect.init(
+        Vec2.from(.{ 10.0, 10.0 }),
+        Vec2.from(.{ 10.0, 10.0 }),
+    );
+
+    // 2. Include a point that expands the 'end' (Bottom-Right)
+    // Point: (25, 30)
+    // New start: min(10, 25) = 10
+    // New end: max(20, 30) = 30
+    // New size: (25-10, 30-10) = (15, 20)
+    const p1 = Vec2.from(.{ 25.0, 30.0 });
+    const expanded_br = rect.includePoint(p1);
+
+    try std.testing.expectEqual(@as(f32, 10.0), expanded_br.start.x());
+    try std.testing.expectEqual(@as(f32, 10.0), expanded_br.start.y());
+    try std.testing.expectEqual(@as(f32, 15.0), expanded_br.size.x());
+    try std.testing.expectEqual(@as(f32, 20.0), expanded_br.size.y());
+    try std.testing.expectEqual(@as(f32, 30.0), expanded_br.end().y());
+
+    // 3. Include a point that expands the 'start' (Top-Left)
+    // Point: (0, 5)
+    // New start: min(10, 0) = 0, min(10, 5) = 5
+    // New size relative to previous end (25, 30): (25-0, 30-5) = (25, 25)
+    const p2 = Vec2.from(.{ 0.0, 5.0 });
+    const expanded_tl = expanded_br.includePoint(p2);
+
+    try std.testing.expectEqual(@as(f32, 0.0), expanded_tl.start.x());
+    try std.testing.expectEqual(@as(f32, 5.0), expanded_tl.start.y());
+    try std.testing.expectEqual(@as(f32, 25.0), expanded_tl.size.x());
+    try std.testing.expectEqual(@as(f32, 25.0), expanded_tl.size.y());
+
+    // 4. Verify a point already inside does not change the Rect
+    const p3 = Vec2.from(.{ 12.0, 12.0 });
+    const no_change = expanded_tl.includePoint(p3);
+
+    try std.testing.expect(no_change.is_eq(expanded_tl));
 }
