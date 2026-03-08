@@ -57,10 +57,6 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return @reduce(.Add, self.data * other.data);
         }
 
-        pub inline fn cross(self: Self, other: Self) T {
-            return self.x() * other.y() - self.y() * other.x();
-        }
-
         pub inline fn lengthSq(self: Self) T {
             return self.dot(self);
         }
@@ -99,6 +95,20 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
         pub inline fn lerp(self: Self, target: Self, t: T) Self {
             const t_v: V = @splat(t);
             return from_v(self.data + (target.data - self.data) * t_v);
+        }
+
+        pub inline fn cross(self: Self, other: Self) if (size == 3) Self else T {
+            if (size == 3) {
+                return from_v(.{
+                    self.data[1] * other.data[2] - self.data[2] * other.data[1],
+                    self.data[2] * other.data[0] - self.data[0] * other.data[2],
+                    self.data[0] * other.data[1] - self.data[1] * other.data[0],
+                });
+            } else if (size == 2) {
+                return self.data[0] * other.data[1] - self.data[1] * other.data[0];
+            } else {
+                @compileError("Cross product not defined for this size");
+            }
         }
 
         pub fn moveTowards(self: Self, target: Self, max_distance: T) Self {
