@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const Vec2 = @import("vec.zig").Vec2;
+pub const Vec = @import("vec.zig").Vec;
 pub const Rect = @import("rect.zig").Rect;
 
 test {
