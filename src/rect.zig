@@ -19,7 +19,7 @@ pub const Rect = struct {
     }
 
     pub inline fn fromSize(w: f32, h: f32) Self {
-        return .{ .size = Vec2.from_v(.{ w, h }) };
+        return .{ .size = Vec2.from(.{ w, h }) };
     }
 
     pub inline fn end(self: Self) Vec2 {
@@ -27,11 +27,11 @@ pub const Rect = struct {
     }
 
     pub inline fn tr(self: Self) Vec2 {
-        return Vec2.from_v(.{ self.end().x(), self.start.y() });
+        return Vec2.from(.{ self.end().x(), self.start.y() });
     }
 
     pub inline fn bl(self: Self) Vec2 {
-        return Vec2.from_v(.{ self.start.x(), self.end().y() });
+        return Vec2.from(.{ self.start.x(), self.end().y() });
     }
 
     pub inline fn center(self: Self) Vec2 {
@@ -63,7 +63,7 @@ pub const Rect = struct {
 
     pub inline fn at(self: Self, x: f32, y: f32) Self {
         var new = self;
-        new.start = Vec2.from_v(.{ x, y });
+        new.start = Vec2.from(.{ x, y });
         return new;
     }
 
@@ -185,8 +185,8 @@ pub const Rect = struct {
 
 test "Rect: spatial points" {
     const rect = Rect.init(
-        Vec2.from_v(.{ 10.0, 20.0 }),
-        Vec2.from_v(.{ 100.0, 50.0 }),
+        Vec2.from(.{ 10.0, 20.0 }),
+        Vec2.from(.{ 100.0, 50.0 }),
     );
 
     // end (bottom-right)
@@ -235,7 +235,7 @@ test "Rect: merge" {
     try std.testing.expectEqual(@as(f32, 25.0), merged.size.y());
 
     // Test overlapping merge
-    const r3 = Rect.init(Vec2.from_v(.{ -5, 5 }), Vec2.splat(10));
+    const r3 = Rect.init(Vec2.from(.{ -5, 5 }), Vec2.splat(10));
     const merged2 = r1.merge(r3);
 
     // Min start: (-5, 0), Max end: (10, 15)
@@ -274,7 +274,7 @@ test "Rect: intersection" {
     }
 
     // Case 4: Touching edges (No area = No intersection)
-    const r5 = Rect.init(Vec2.from_v(.{ 10, 0 }), Vec2.from_v(.{ 10, 10 }));
+    const r5 = Rect.init(Vec2.from(.{ 10, 0 }), Vec2.from(.{ 10, 10 }));
     try std.testing.expect(r1.intersection(r5) == null);
 }
 
@@ -373,74 +373,74 @@ test "Rect: collides edge cases" {
 
     // 2. SEPARATED ON X ONLY (Aligned on Y)
     // Should be false.
-    const c = Rect.init(Vec2.from_v(.{ 11, 0 }), Vec2.from_v(.{ 10, 10 }));
+    const c = Rect.init(Vec2.from(.{ 11, 0 }), Vec2.from(.{ 10, 10 }));
     try std.testing.expect(!a.collides(c));
 
     // 3. SEPARATED ON Y ONLY (Aligned on X)
     // Should be false.
-    const d = Rect.init(Vec2.from_v(.{ 0, 11 }), Vec2.from_v(.{ 10, 10 }));
+    const d = Rect.init(Vec2.from(.{ 0, 11 }), Vec2.from(.{ 10, 10 }));
     try std.testing.expect(!a.collides(d));
 
     // 4. THE "DANGER ZONE": Separated on X, but Overlapping on Y
     // Rect E is at (15, 5).
     // X is far away (15 > 10), but Y is inside (5 is between 0 and 10).
     // Should be false.
-    const e = Rect.init(Vec2.from_v(.{ 15, 5 }), Vec2.from_v(.{ 10, 10 }));
+    const e = Rect.init(Vec2.from(.{ 15, 5 }), Vec2.from(.{ 10, 10 }));
     try std.testing.expect(!a.collides(e));
 
     // 5. TOUCHING EDGES (Exact)
     // Depending on if you use <= or <, this should be true or false.
     // With your current <= logic, this is TRUE.
-    const f = Rect.init(Vec2.from_v(.{ 10, 0 }), Vec2.from_v(.{ 10, 10 }));
+    const f = Rect.init(Vec2.from(.{ 10, 0 }), Vec2.from(.{ 10, 10 }));
     try std.testing.expect(a.collides(f));
 
     // 6. NEGATIVE COORDINATES
-    const g = Rect.init(Vec2.from_v(.{ -5, -5 }), Vec2.from_v(.{ 10, 10 }));
+    const g = Rect.init(Vec2.from(.{ -5, -5 }), Vec2.from(.{ 10, 10 }));
     try std.testing.expect(a.collides(g));
 
-    const h = Rect.init(Vec2.from_v(.{ -10, -10 }), Vec2.from_v(.{ 10, 10 }));
+    const h = Rect.init(Vec2.from(.{ -10, -10 }), Vec2.from(.{ 10, 10 }));
     try std.testing.expect(a.collides(h));
 }
 
 test "Rect: contains_p (point)" {
-    const rect = Rect.init(Vec2.from_v(.{ 10, 10 }), Vec2.from_v(.{ 20, 20 })); // Bounds: 10,10 to 30,30
+    const rect = Rect.init(Vec2.from(.{ 10, 10 }), Vec2.from(.{ 20, 20 })); // Bounds: 10,10 to 30,30
 
     // Inside
-    try std.testing.expect(rect.contains_p(Vec2.from_v(.{ 15, 15 })));
+    try std.testing.expect(rect.contains_p(Vec2.from(.{ 15, 15 })));
 
     // On the edge (start)
-    try std.testing.expect(rect.contains_p(Vec2.from_v(.{ 10, 10 })));
+    try std.testing.expect(rect.contains_p(Vec2.from(.{ 10, 10 })));
 
     // On the edge (end)
-    try std.testing.expect(rect.contains_p(Vec2.from_v(.{ 30, 30 })));
+    try std.testing.expect(rect.contains_p(Vec2.from(.{ 30, 30 })));
 
     // Outside (just barely)
-    try std.testing.expect(!rect.contains_p(Vec2.from_v(.{ 9.9, 15 })));
-    try std.testing.expect(!rect.contains_p(Vec2.from_v(.{ 15, 30.1 })));
+    try std.testing.expect(!rect.contains_p(Vec2.from(.{ 9.9, 15 })));
+    try std.testing.expect(!rect.contains_p(Vec2.from(.{ 15, 30.1 })));
 }
 
 test "Rect: contains (another rect)" {
-    const outer = Rect.init(Vec2.from_v(.{ 0, 0 }), Vec2.from_v(.{ 100, 100 }));
+    const outer = Rect.init(Vec2.from(.{ 0, 0 }), Vec2.from(.{ 100, 100 }));
 
     // Fully inside
-    const inner = Rect.init(Vec2.from_v(.{ 10, 10 }), Vec2.from_v(.{ 50, 50 }));
+    const inner = Rect.init(Vec2.from(.{ 10, 10 }), Vec2.from(.{ 50, 50 }));
     try std.testing.expect(outer.contains(inner));
 
     // Identical rects
     try std.testing.expect(outer.contains(outer));
 
     // Peeking out (partial overlap)
-    const peeking = Rect.init(Vec2.from_v(.{ 50, 50 }), Vec2.from_v(.{ 60, 60 })); // Ends at 110,110
+    const peeking = Rect.init(Vec2.from(.{ 50, 50 }), Vec2.from(.{ 60, 60 })); // Ends at 110,110
     try std.testing.expect(!outer.contains(peeking));
 
     // Completely outside
-    const outside = Rect.init(Vec2.from_v(.{ 200, 200 }), Vec2.from_v(.{ 10, 10 }));
+    const outside = Rect.init(Vec2.from(.{ 200, 200 }), Vec2.from(.{ 10, 10 }));
     try std.testing.expect(!outer.contains(outside));
 }
 
 test "Rect: translate" {
-    const rect = Rect.init(Vec2.from_v(.{ 10, 20 }), Vec2.from_v(.{ 100, 50 }));
-    const offset = Vec2.from_v(.{ 5, -10 });
+    const rect = Rect.init(Vec2.from(.{ 10, 20 }), Vec2.from(.{ 100, 50 }));
+    const offset = Vec2.from(.{ 5, -10 });
 
     const moved = rect.translate(offset);
 
@@ -459,7 +459,7 @@ test "Rect: translate" {
 }
 
 test "Rect: expand and expandVec2" {
-    const rect = Rect.init(Vec2.from_v(.{ 100, 100 }), Vec2.from_v(.{ 50, 50 }));
+    const rect = Rect.init(Vec2.from(.{ 100, 100 }), Vec2.from(.{ 50, 50 }));
 
     // Case 1: expand (uniform)
     const expanded = rect.expand(10.0);
@@ -472,7 +472,7 @@ test "Rect: expand and expandVec2" {
     try std.testing.expectEqual(@as(f32, 125.0), expanded.center().y());
 
     // Case 2: expandVec2 (non-uniform)
-    const amount = Vec2.from_v(.{ 5.0, 20.0 });
+    const amount = Vec2.from(.{ 5.0, 20.0 });
     const expanded_v = rect.expandVec2(amount);
     // X: Start 100-5=95, Size 50+10=60
     // Y: Start 100-20=80, Size 50+40=90
@@ -490,7 +490,7 @@ test "Rect: expand and expandVec2" {
 }
 
 test "Rect: shrink" {
-    const rect = Rect.init(Vec2.from_v(.{ 10, 10 }), Vec2.from_v(.{ 100, 100 }));
+    const rect = Rect.init(Vec2.from(.{ 10, 10 }), Vec2.from(.{ 100, 100 }));
 
     // Normal shrink
     const shrunk = rect.shrink(10.0);
@@ -507,7 +507,7 @@ test "Rect: shrink" {
 }
 
 test "Rect: shrink & shrinkVec2" {
-    const rect = Rect.init(Vec2.from_v(.{ 10, 10 }), Vec2.from_v(.{ 100, 100 }));
+    const rect = Rect.init(Vec2.from(.{ 10, 10 }), Vec2.from(.{ 100, 100 }));
 
     // Case 1: Uniform shrink
     const shrunk = rect.shrink(10.0);
@@ -517,7 +517,7 @@ test "Rect: shrink & shrinkVec2" {
     try std.testing.expectEqual(@as(f32, 80.0), shrunk.size.x());
 
     // Case 2: Non-uniform shrinkVec2
-    const s_vec = rect.shrinkVec2(Vec2.from_v(.{ 5, 20 }));
+    const s_vec = rect.shrinkVec2(Vec2.from(.{ 5, 20 }));
     // X: 10 + 5 = 15 | 100 - 10 = 90
     // Y: 10 + 20 = 30 | 100 - 40 = 60
     try std.testing.expectEqual(@as(f32, 15.0), s_vec.start.x());
