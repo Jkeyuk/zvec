@@ -99,11 +99,16 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
 
         pub inline fn cross(self: Self, other: Self) if (size == 3) Self else T {
             if (size == 3) {
-                return from(.{
-                    self.y() * other.z() - self.z() * other.y(),
-                    self.z() * other.x() - self.x() * other.z(),
-                    self.x() * other.y() - self.y() * other.x(),
-                });
+                const a = self.data;
+                const b = other.data;
+                // Indices for (y, z, x)
+                const s1 = [_]i32{ 1, 2, 0 };
+                // Indices for (z, x, y)
+                const s2 = [_]i32{ 2, 0, 1 };
+
+                const res = (@shuffle(T, a, undefined, s1) * @shuffle(T, b, undefined, s2)) -
+                    (@shuffle(T, a, undefined, s2) * @shuffle(T, b, undefined, s1));
+                return from(res);
             } else if (size == 2) {
                 return self.x() * other.y() - self.y() * other.x();
             } else {
