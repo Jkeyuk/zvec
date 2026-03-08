@@ -26,6 +26,25 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return self.data[2];
         }
 
+        pub fn swizzle(self: Self, comptime mask: []const u8) Vec(mask.len, T) {
+            const indices: [mask.len]i32 = comptime blk: {
+                var res: [mask.len]i32 = undefined;
+                for (mask, 0..) |char, i| {
+                    res[i] = switch (char) {
+                        'x', 'r', 's' => 0,
+                        'y', 'g', 't' => 1,
+                        'z', 'b', 'p' => 2,
+                        'w', 'a', 'q' => 3,
+                        else => @compileError("Invalid swizzle component"),
+                    };
+                    if (res[i] >= size) @compileError("Swizzle index out of bounds");
+                }
+                break :blk res;
+            };
+
+            return Vec(mask.len, T).from(@shuffle(T, self.data, undefined, indices));
+        }
+
         // Constructors
         pub inline fn splat(other: T) Self {
             return .{ .data = @splat(other) };
@@ -50,6 +69,10 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
 
         pub inline fn div(self: Self, s: T) Self {
             return from(self.data / @as(V, @splat(s)));
+        }
+
+        pub fn approxEq(self: Self, other: Self, epsilon: T) bool {
+            return self.distanceSq(other) < (epsilon * epsilon);
         }
 
         pub inline fn dot(self: Self, other: Self) T {
@@ -585,4 +608,12 @@ test "Vec rotation 3D" {
     try std.testing.expectApproxEqAbs(0.0, rotated.x(), 0.0001);
     try std.testing.expectApproxEqAbs(1.0, rotated.y(), 0.0001);
     try std.testing.expectApproxEqAbs(0.0, rotated.z(), 0.0001);
+}
+
+test "swizle" {
+    const v3 = Vec(3, f32).from(.{ 1.0, 2.0, 3.0 });
+    const v2 = v3.swizzle("xy");
+    const v4 = v3.swizzle("yz");
+    try std.testing.expectEqual(Vec2.from(.{ 1.0, 2.0 }), v2);
+    try std.testing.expectEqual(Vec2.from(.{ 2.0, 3.0 }), v4);
 }
