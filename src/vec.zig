@@ -1,6 +1,9 @@
 const std = @import("std");
 
 pub fn Vec(comptime size: comptime_int, comptime T: type) type {
+    if (@typeInfo(T) != .float) @compileError(
+        "Vec only supports floating point types, found " ++ @typeName(T),
+    );
     return struct {
         const Self = @This();
         pub const V = @Vector(size, T);
