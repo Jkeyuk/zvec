@@ -105,7 +105,7 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
                     self.data[0] * other.data[1] - self.data[1] * other.data[0],
                 });
             } else if (size == 2) {
-                return self.data[0] * other.data[1] - self.data[1] * other.data[0];
+                return self.x() * other.y() - self.y() * other.x();
             } else {
                 @compileError("Cross product not defined for this size");
             }
