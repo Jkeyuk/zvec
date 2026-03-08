@@ -32,10 +32,6 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
             return .{ .data = v };
         }
 
-        pub inline fn fromV(vec: Self) Self {
-            return .{ .data = vec.data };
-        }
-
         // Base Methods
         pub inline fn add(self: Self, other: Self) Self {
             return from(self.data + other.data);
