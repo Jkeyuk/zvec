@@ -82,6 +82,7 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
         }
 
         pub fn rotate(self: Self, angle: T) Self {
+            comptime if (size != 2) @compileError("Only for 2d");
             const cos = std.math.cos(angle);
             const sin = std.math.sin(angle);
             return .{ .data = .{
@@ -91,12 +92,14 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
         }
 
         pub fn rotateAround(self: Self, pivot: Self, angle: T) Self {
+            comptime if (size != 2) @compileError("Only for 2d");
             const shifted = self.sub(pivot);
             const rotated = shifted.rotate(angle);
             return rotated.add(pivot);
         }
 
         pub fn rotate90(self: Self) Self {
+            comptime if (size != 2) @compileError("Only for 2d");
             return .{ .data = .{ -self.data[1], self.data[0] } };
         }
 
