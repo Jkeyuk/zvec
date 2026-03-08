@@ -627,7 +627,7 @@ test "Vec rotation 3D" {
     try std.testing.expectApproxEqAbs(0.0, rotated.z(), 0.0001);
 }
 
-test "swizle" {
+test "vec.swizle" {
     const v3 = Vec(3, f32).from(.{ 1.0, 2.0, 3.0 });
     const v2 = v3.swizzle("xy");
     const v4 = v3.swizzle("yz");
