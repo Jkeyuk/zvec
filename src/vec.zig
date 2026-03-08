@@ -100,9 +100,9 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
         pub inline fn cross(self: Self, other: Self) if (size == 3) Self else T {
             if (size == 3) {
                 return from_v(.{
-                    self.data[1] * other.data[2] - self.data[2] * other.data[1],
-                    self.data[2] * other.data[0] - self.data[0] * other.data[2],
-                    self.data[0] * other.data[1] - self.data[1] * other.data[0],
+                    self.y() * other.z() - self.z() * other.y(),
+                    self.z() * other.x() - self.x() * other.z(),
+                    self.x() * other.y() - self.y() * other.x(),
                 });
             } else if (size == 2) {
                 return self.x() * other.y() - self.y() * other.x();
@@ -493,6 +493,26 @@ test "Vec2: isWithinDistance" {
     try std.testing.expect(!p3.isWithinDistance(p4, 0.5));
 }
 
+test "Vec cross product 2D vs 3D" {
+
+    // Test 2D: Returns a scalar (T)
+    const v2a = Vec2.from_v(.{ 1.0, 0.0 });
+    const v2b = Vec2.from_v(.{ 0.0, 1.0 });
+    const result2d = v2a.cross(v2b);
+
+    try std.testing.expectApproxEqAbs(1.0, result2d, 0.0001);
+
+    // Test 3D: Returns a vector (Vec3)
+    const v3a = Vec3.from_v(.{ 1.0, 0.0, 0.0 }); // Right
+    const v3b = Vec3.from_v(.{ 0.0, 1.0, 0.0 }); // Up
+    const result3d = v3a.cross(v3b); // Forward (Z)
+
+    try std.testing.expect(@TypeOf(result3d) == Vec3);
+    try std.testing.expectApproxEqAbs(0.0, result3d.x(), 0.0001);
+    try std.testing.expectApproxEqAbs(0.0, result3d.y(), 0.0001);
+    try std.testing.expectApproxEqAbs(1.0, result3d.z(), 0.0001);
+}
+
 test "Vec2: cross product" {
     const right = Vec2.from_v(.{ 1.0, 0.0 });
     const up = Vec2.from_v(.{ 0.0, 1.0 });
@@ -506,7 +526,6 @@ test "Vec2: cross product" {
     // Parallel vectors should be 0.0
     try std.testing.expectEqual(@as(f32, 0.0), right.cross(right));
 }
-
 test "Vec2: reflect" {
     const tolerance = 0.000001;
 
