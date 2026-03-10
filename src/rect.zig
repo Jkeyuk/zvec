@@ -133,8 +133,12 @@ pub fn Rect(comptime T: type) type {
             return @reduce(.And, s2 >= s1) and @reduce(.And, e2 <= e1);
         }
 
-        pub inline fn translate(self: Self, offset: Vec2) Self {
+        pub inline fn add(self: Self, offset: Vec2) Self {
             return Self.initV(self.start.add(offset), self.size);
+        }
+
+        pub inline fn sub(self: Self, offset: Vec2) Self {
+            return Self.initV(self.start.sub(offset), self.size);
         }
 
         pub inline fn expandVec2(self: Self, amount: Vec2) Self {
@@ -454,7 +458,7 @@ test "Rectf: translate" {
     const rect = Rectf.initV(Rectf.Vec2.from(.{ 10, 20 }), Rectf.Vec2.from(.{ 100, 50 }));
     const offset = Rectf.Vec2.from(.{ 5, -10 });
 
-    const moved = rect.translate(offset);
+    const moved = rect.add(offset);
 
     // Start: (10+5, 20-10) -> (15, 10)
     try std.testing.expectEqual(@as(f32, 15.0), moved.start.x());
@@ -465,7 +469,7 @@ test "Rectf: translate" {
     try std.testing.expectEqual(@as(f32, 50.0), moved.size.y());
 
     // Test zero translation
-    const stayed = rect.translate(Rectf.Vec2.ZERO);
+    const stayed = rect.add(Rectf.Vec2.ZERO);
     try std.testing.expectEqual(rect.start.x(), stayed.start.x());
     try std.testing.expectEqual(rect.size.x(), stayed.size.x());
 }
