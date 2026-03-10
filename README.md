@@ -25,3 +25,36 @@ exe.root_module.addImport("zvec", zvec.module("zvec"));
 
 ```
 
+
+## Quick Start
+
+```zig
+const Vec3 = Vec(3, f32);
+
+const v1 = Vec3.initV(.{ 1.0, 2.0, 3.0 });
+const v2 = Vec3.splat(10.0);
+
+const result = v1.add(v2); // (11.0, 12.0, 13.0)
+const dot_product = v1.dot(v2);
+
+// Swizzling support
+const v2_swizzled = v1.swizzle("zyx"); // (3.0, 2.0, 1.0)
+
+
+const RectF = Rect(f32);
+
+const player_bounds = RectF.init(0, 0, 32, 32);
+const enemy_bounds = RectF.init(20, 20, 32, 32);
+
+if (player_bounds.collides(enemy_bounds)) {
+    // Handle collision
+}
+
+const union_rect = player_bounds.merge(enemy_bounds);
+
+```
+
+## 📖 API Overview
+Type	Key Methods
+Vec(n, T)	add, sub, mul, div, dot, cross, normalize, lerp, swizzle
+Rect(T)	collides, contains, intersection, merge, expand, center, at
