@@ -58,10 +58,16 @@ pub fn Vec(comptime size: comptime_int, comptime T: type) type {
 
         // Base Methods
         pub inline fn add(self: Self, other: Self) Self {
+            if (@typeInfo(T) == .int) {
+                return from(self.data +% other.data);
+            }
             return from(self.data + other.data);
         }
 
         pub inline fn sub(self: Self, other: Self) Self {
+            if (@typeInfo(T) == .int) {
+                return from(self.data -% other.data);
+            }
             return from(self.data - other.data);
         }
 
