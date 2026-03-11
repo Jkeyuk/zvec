@@ -166,7 +166,16 @@ pub fn Rect(comptime T: type) type {
             return self.shrinkVec2(Vec2.splat(amount));
         }
 
+        /// Assumes y-down
         pub inline fn pad(self: Self, top: f32, right: f32, bottom: f32, left: f32) Self {
+            return Self.initV(
+                self.start.add(Vec2.from(.{ left, top })),
+                self.size.sub(Vec2.from(.{ left + right, top + bottom })),
+            );
+        }
+
+        /// Assumes y-down
+        pub inline fn margin(self: Self, top: f32, right: f32, bottom: f32, left: f32) Self {
             return Self.initV(
                 self.start.sub(Vec2.from(.{ left, top })),
                 self.size.add(Vec2.from(.{ left + right, top + bottom })),
@@ -659,7 +668,7 @@ test "Rectf.closestPoint" {
     try std.testing.expectEqual(@as(f32, 5.0), close_edge.y());
 }
 
-test "Rectf.pad (Outward Expansion)" {
+test "Rectf.margin (Outward Expansion)" {
     // 1. Create a 100x100 rect starting at (50, 50)
     // End is (150, 150)
     const rect = Rectf.initV(
@@ -669,7 +678,7 @@ test "Rectf.pad (Outward Expansion)" {
 
     // 2. Apply outward padding (margins)
     // top: 10, right: 20, bottom: 30, left: 40
-    const padded = rect.pad(10.0, 20.0, 30.0, 40.0);
+    const padded = rect.margin(10.0, 20.0, 30.0, 40.0);
 
     // New start moves "left" and "up":
     // x: 50 - 40 (left) = 10.0
@@ -688,4 +697,23 @@ test "Rectf.pad (Outward Expansion)" {
     // y: 150 + 30 (bottom) = 180.0
     try std.testing.expectEqual(@as(f32, 170.0), padded.end().x());
     try std.testing.expectEqual(@as(f32, 180.0), padded.end().y());
+}
+
+test "Rectf.pad (inward Expansion)" {
+    const rect = Rectf.initV(
+        Rectf.Vec2.ZERO,
+        Rectf.Vec2.from(.{ 100.0, 100.0 }),
+    );
+
+    // top: 10, right: 20, bottom: 30, left: 40
+    const padded = rect.pad(10.0, 20.0, 30.0, 40.0);
+
+    try std.testing.expectEqual(@as(f32, 40.0), padded.start.x());
+    try std.testing.expectEqual(@as(f32, 10.0), padded.start.y());
+
+    try std.testing.expectEqual(@as(f32, 40.0), padded.size.x());
+    try std.testing.expectEqual(@as(f32, 60.0), padded.size.y());
+
+    try std.testing.expectEqual(@as(f32, 80.0), padded.end().x());
+    try std.testing.expectEqual(@as(f32, 70.0), padded.end().y());
 }
