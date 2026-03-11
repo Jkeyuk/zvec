@@ -27,17 +27,17 @@ pub fn Rect(comptime T: type) type {
             };
         }
 
-        pub inline fn at(self: Self, x: f32, y: f32) Self {
+        pub inline fn at(self: Self, x: T, y: T) Self {
             var new = self;
             new.start = Vec2.from(.{ x, y });
             return new;
         }
 
-        pub inline fn splat(value: f32) Self {
+        pub inline fn splat(value: T) Self {
             return .{ .size = Vec2.splat(value) };
         }
 
-        pub inline fn fromSize(w: f32, h: f32) Self {
+        pub inline fn fromSize(w: T, h: T) Self {
             return .{ .size = Vec2.from(.{ w, h }) };
         }
 
@@ -74,7 +74,7 @@ pub fn Rect(comptime T: type) type {
         }
 
         /// Return [start x, y , size x, y]
-        pub inline fn flatten(self: Self) @Vector(4, f32) {
+        pub inline fn flatten(self: Self) @Vector(4, T) {
             return .{
                 self.start.x(),
                 self.start.y(),
@@ -150,7 +150,7 @@ pub fn Rect(comptime T: type) type {
             );
         }
 
-        pub inline fn expand(self: Self, amount: f32) Self {
+        pub inline fn expand(self: Self, amount: T) Self {
             return self.expandVec2(Vec2.splat(amount));
         }
 
@@ -161,13 +161,13 @@ pub fn Rect(comptime T: type) type {
             return Self.initV(self.start.add(offset), clamped_size);
         }
 
-        pub inline fn shrink(self: Self, amount: f32) Self {
+        pub inline fn shrink(self: Self, amount: T) Self {
             // Use your existing splat method for the correct struct initialization
             return self.shrinkVec2(Vec2.splat(amount));
         }
 
         /// Assumes y-down
-        pub inline fn pad(self: Self, top: f32, right: f32, bottom: f32, left: f32) Self {
+        pub inline fn pad(self: Self, top: T, right: T, bottom: T, left: T) Self {
             return Self.initV(
                 self.start.add(Vec2.from(.{ left, top })),
                 self.size.sub(Vec2.from(.{ left + right, top + bottom })),
@@ -175,7 +175,7 @@ pub fn Rect(comptime T: type) type {
         }
 
         /// Assumes y-down
-        pub inline fn margin(self: Self, top: f32, right: f32, bottom: f32, left: f32) Self {
+        pub inline fn margin(self: Self, top: T, right: T, bottom: T, left: T) Self {
             return Self.initV(
                 self.start.sub(Vec2.from(.{ left, top })),
                 self.size.add(Vec2.from(.{ left + right, top + bottom })),
@@ -183,6 +183,10 @@ pub fn Rect(comptime T: type) type {
         }
 
         pub inline fn is_eq(self: Self, r2: Self) bool {
+            if (@typeInfo(T) == .int) {
+                return self.start.data == r2.start.data and
+                    self.size.data == r2.size.data;
+            }
             const epsilon: f32 = 0.0001;
             const eps_v = Vec2.splat(epsilon);
 
